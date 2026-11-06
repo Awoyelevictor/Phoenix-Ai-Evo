@@ -43,7 +43,7 @@ Device credentials are stored as SHA-256 digests; raw credentials are only retur
 
 ## Database setup
 
-Apply supabase/migrations/20261106000100_phoenix_devices.sql to the dedicated Phoenix Supabase project before configuring the API. The migration enables RLS and denies direct access to anon and authenticated; only the server-side service role can access the table. The API performs ownership checks after verifying each user with Supabase Auth.
+Apply supabase/migrations/20261106000100_phoenix_devices.sql to the existing ULTRON Supabase project selected for Phoenix AI Evo before configuring the API. The migration enables RLS and denies direct access to anon and authenticated; only the server-side service role can access the table. The API performs ownership checks after verifying each user with Supabase Auth. The existing ULTRON project name and project ID remain unchanged; Phoenix uses its existing Supabase URL and keys.
 
 ## Deployment
 
