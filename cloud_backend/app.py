@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import os
@@ -11,7 +12,7 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 import httpx
-from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, Response, UploadFile, status
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -531,3 +532,127 @@ async def chat_completions(
     if not isinstance(result, dict) or not isinstance(result.get("choices"), list):
         raise HTTPException(status_code=502, detail="OpenRouter returned an unexpected response.")
     return result
+
+
+class SpeechRequest(BaseModel):
+    input: str = Field(min_length=1, max_length=4000)
+
+
+@app.post("/v1/audio/transcriptions")
+async def transcribe_audio(
+    request: Request,
+    file: UploadFile = File(...),
+):
+    """Transcribe a browser-recorded audio turn through the server-side OpenRouter key."""
+    api_key = _env("OPENROUTER_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="The Phoenix voice provider is not configured.")
+
+    audio = await file.read(12 * 1024 * 1024 + 1)
+    if not audio:
+        raise HTTPException(status_code=400, detail="The recording is empty.")
+    if len(audio) > 12 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="The recording is too large. Keep voice messages under 12 MB.")
+
+    content_type = (file.content_type or "").lower()
+    if "webm" in content_type:
+        audio_format = "webm"
+    elif "ogg" in content_type:
+        audio_format = "ogg"
+    elif "mp4" in content_type or "m4a" in content_type:
+        audio_format = "m4a"
+    elif "wav" in content_type:
+        audio_format = "wav"
+    elif "mpeg" in content_type or "mp3" in content_type:
+        audio_format = "mp3"
+    else:
+        audio_format = (Path(file.filename or "").suffix.lower().lstrip(".") or "webm")
+        if audio_format not in {"webm", "ogg", "m4a", "wav", "mp3", "flac", "aac"}:
+            raise HTTPException(status_code=415, detail="Unsupported audio format. Use a browser-supported WebM, MP4, or WAV recording.")
+
+    payload = {
+        "model": _env("OPENROUTER_STT_MODEL", "openai/whisper-large-v3"),
+        "input_audio": {
+            "data": base64.b64encode(audio).decode("ascii"),
+            "format": audio_format,
+        },
+    }
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    try:
+        response = await request.app.state.http.post(
+            "https://openrouter.ai/api/v1/audio/transcriptions",
+            headers=headers,
+            json=payload,
+            timeout=httpx.Timeout(90.0, connect=10.0),
+        )
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Voice transcription took too long. Try a shorter recording.")
+    except httpx.HTTPError:
+        raise HTTPException(status_code=503, detail="The voice transcription service is temporarily unreachable.")
+
+    if response.status_code == 401:
+        raise HTTPException(status_code=502, detail="OpenRouter rejected the server API key.")
+    if response.status_code == 402:
+        raise HTTPException(status_code=402, detail="OpenRouter has insufficient credits for voice transcription.")
+    if response.status_code == 429:
+        raise HTTPException(status_code=429, detail="Voice transcription is rate-limited. Try again shortly.")
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail="OpenRouter could not transcribe this recording.")
+    try:
+        result = response.json()
+    except ValueError:
+        raise HTTPException(status_code=502, detail="OpenRouter returned an invalid transcription response.")
+    transcript = result.get("text") if isinstance(result, dict) else None
+    if not isinstance(transcript, str) or not transcript.strip():
+        raise HTTPException(status_code=422, detail="No speech was detected. Try speaking a little closer to the microphone.")
+    return {"text": transcript.strip(), "model": payload["model"]}
+
+
+@app.post("/v1/audio/speech")
+async def generate_speech(body: SpeechRequest, request: Request):
+    """Generate Phoenix's spoken reply using the same server-side OpenRouter key as chat."""
+    api_key = _env("OPENROUTER_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="The Phoenix voice provider is not configured.")
+
+    payload = {
+        "model": _env("OPENROUTER_TTS_MODEL", "google/gemini-3.8-flash-lite-tts"),
+        "input": body.input.strip(),
+        "voice": _env("OPENROUTER_TTS_VOICE", "Algenib"),
+        "instructions": _env(
+            "PHOENIX_VOICE_STYLE",
+            "Speak in a deep, low-register masculine voice with a resonant chest tone, controlled measured pacing, crisp diction, restrained emotion, and a subtle futuristic synthetic metallic edge. Sound calm, intelligent, formidable, and composed. Keep the voice natural and intelligible; do not imitate any specific actor or existing character.",
+        ),
+        "response_format": "mp3",
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": _env("OPENROUTER_SITE_URL", "https://phoenix-cloud-api.onrender.com"),
+        "X-Title": "Phoenix AI Evo Voice",
+    }
+    try:
+        response = await request.app.state.http.post(
+            "https://openrouter.ai/api/v1/audio/speech",
+            headers=headers,
+            json=payload,
+            timeout=httpx.Timeout(90.0, connect=10.0),
+        )
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Phoenix voice generation took too long.")
+    except httpx.HTTPError:
+        raise HTTPException(status_code=503, detail="The voice generation service is temporarily unreachable.")
+
+    if response.status_code == 401:
+        raise HTTPException(status_code=502, detail="OpenRouter rejected the server API key.")
+    if response.status_code == 402:
+        raise HTTPException(status_code=402, detail="OpenRouter has insufficient credits for speech generation.")
+    if response.status_code == 429:
+        raise HTTPException(status_code=429, detail="Speech generation is rate-limited. Try again shortly.")
+    if response.status_code != 200 or not response.content:
+        raise HTTPException(status_code=502, detail="OpenRouter could not generate Phoenix's voice.")
+    return Response(
+        content=response.content,
+        media_type=response.headers.get("content-type", "audio/mpeg"),
+        headers={"Cache-Control": "no-store"},
+    )
