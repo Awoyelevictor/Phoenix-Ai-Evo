@@ -615,14 +615,16 @@ async def generate_speech(body: SpeechRequest, request: Request):
     if not api_key:
         raise HTTPException(status_code=503, detail="The Phoenix voice provider is not configured.")
 
+    # Grok Voice TTS is the primary non-Gemini speech synthesizer.
+    # Delivery tags are prepended because this model steers style through inline tags.
+    voice_style = _env(
+        "PHOENIX_VOICE_STYLE",
+        "[deep, low-pitched masculine voice; resonant chest tone; calm, deliberate pacing; crisp diction; controlled authority; subtle synthetic metallic edge]",
+    )
     payload = {
-        "model": _env("OPENROUTER_TTS_MODEL", "google/gemini-3.8-flash-lite-tts"),
-        "input": body.input.strip(),
-        "voice": _env("OPENROUTER_TTS_VOICE", "Algenib"),
-        "instructions": _env(
-            "PHOENIX_VOICE_STYLE",
-            "Speak in a deep, low-register masculine voice with a resonant chest tone, controlled measured pacing, crisp diction, restrained emotion, and a subtle futuristic synthetic metallic edge. Sound calm, intelligent, formidable, and composed. Keep the voice natural and intelligible; do not imitate any specific actor or existing character.",
-        ),
+        "model": _env("OPENROUTER_TTS_MODEL", "x-ai/grok-voice-tts-1.0"),
+        "input": f"{voice_style} {body.input.strip()}",
+        "voice": _env("OPENROUTER_TTS_VOICE", "rex"),
         "response_format": "mp3",
     }
     headers = {
