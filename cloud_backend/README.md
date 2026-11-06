@@ -15,7 +15,7 @@ A separate FastAPI service for the Phoenix web, Android, and Windows clients. It
     pip install -r requirements-cloud.txt
     uvicorn cloud_backend.app:app --host 0.0.0.0 --port 8000
 
-The service starts without Supabase credentials so the public health endpoint can be checked. Authenticated endpoints remain unavailable until the server environment is configured.
+The service starts without Supabase credentials so the public health endpoint can be checked. Authenticated endpoints remain unavailable until the server environment is configured. The chat endpoint additionally requires `OPENROUTER_API_KEY`; it uses `OPENROUTER_MODEL` or defaults to `openrouter/auto`.
 
 ## Environment
 
@@ -33,7 +33,7 @@ Set CORS_ALLOWED_ORIGINS to a comma-separated list of exact trusted web origins.
 
 - GET /healthz — public liveness check; never returns secrets
 - GET /readyz — verifies required configuration is present
-- GET /v1/me — verifies the Supabase access token with Supabase Auth
+- POST /v1/chat/completions — authenticated OpenRouter chat completion proxy; the API key stays server-side\n- GET /v1/me — verifies the Supabase access token with Supabase Auth
 - GET /v1/devices — list devices owned by the signed-in user
 - POST /v1/devices — register a device; the generated secret is returned once
 - DELETE /v1/devices/{id} — revoke an owned device

@@ -41,3 +41,31 @@ def test_device_ping_rejects_missing_device_credentials():
         response = client.get("/v1/device/ping")
     assert response.status_code == 401
     assert response.json()["detail"] == "Device credentials required."
+
+
+def test_readiness_requires_openrouter_key_when_supabase_is_configured(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "publishable-placeholder")
+    monkeypatch.setenv("SUPABASE_SECRET_KEY", "secret-placeholder")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    with TestClient(app) as client:
+        response = client.get("/readyz")
+    assert response.status_code == 503
+    assert response.json()["detail"]["missing_configuration"] == ["OPENROUTER_API_KEY"]
+
+
+def test_chat_requires_openrouter_key(monkeypatch):
+    from cloud_backend.app import AuthenticatedUser, current_user
+    import uuid
+
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    app.dependency_overrides[current_user] = lambda: AuthenticatedUser(id=uuid.uuid4())
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                "/v1/chat/completions",
+                json={"messages": [{"role": "user", "content": "Hello"}]},
+            )
+        assert response.status_code == 503
+    finally:
+        app.dependency_overrides.clear()

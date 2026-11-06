@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field
 
 SERVICE_NAME = "phoenix-cloud-api"
 API_VERSION = "1.0.0"
-DEVICE_SELECT = "id,user_id,name,platform,created_at,last_seen_at,revoked_at,credential_hash"
+DEVICE_SELECT = "id,user_id,name,platform,created_at,last_seen_at,revoked_at,credential_hash"\nOPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
 def _env(name: str, default: str = "") -> str:
@@ -196,7 +196,7 @@ async def current_device(
 @app.get("/healthz")
 async def healthz():
     base_url, publishable_key, secret_key = _supabase_config()
-    configured = bool(base_url and publishable_key and secret_key)
+    configured = bool(base_url and publishable_key and secret_key and _env("OPENROUTER_API_KEY"))
     return {
         "ok": True,
         "service": SERVICE_NAME,
