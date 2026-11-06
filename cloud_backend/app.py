@@ -340,6 +340,11 @@ async def web_app():
     return FileResponse(index_file)
 
 
+@app.head("/", include_in_schema=False)
+async def web_app_head():
+    return Response(status_code=200)
+
+
 @app.get("/web-assets/{asset_name}", include_in_schema=False)
 async def web_asset(asset_name: str):
     if asset_name not in {"styles.css", "app.js"}:

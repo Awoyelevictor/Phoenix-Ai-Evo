@@ -88,3 +88,10 @@ def test_web_client_is_served():
         response = client.get("/")
     assert response.status_code == 200
     assert "Phoenix AI Evo" in response.text
+
+
+
+def test_root_head_health_probe():
+    with TestClient(app) as client:
+        response = client.head("/")
+    assert response.status_code == 200
