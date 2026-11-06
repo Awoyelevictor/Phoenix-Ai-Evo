@@ -473,7 +473,7 @@ async def web_app_head():
 
 @app.get("/web-assets/{asset_name}", include_in_schema=False)
 async def web_asset(asset_name: str):
-    if asset_name not in {"styles.css", "app.js"}:
+    if asset_name not in {"styles.css", "app.js", "phoenix-enhancements.js"}:
         raise HTTPException(status_code=404, detail="Asset not found.")
     asset_file = Path(__file__).resolve().parent.parent / "web_client" / asset_name
     if not asset_file.is_file():
