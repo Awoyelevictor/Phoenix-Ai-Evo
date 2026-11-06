@@ -1,71 +1,117 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#020305">
-  <meta name="description" content="Phoenix AI Evo — your personal AI workspace.">
-  <title>Phoenix AI Evo</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#050811">
+  <meta name="description" content="Phoenix AI Evo — ULTRON multimodal voice and vision workspace.">
+  <title>ULTRON // PHOENIX AI EVO</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/web-assets/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/web-assets/ultron-ui.css">
 </head>
 <body>
-  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
-  <div id="app-screen" class="app-shell">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-brand"><div class="brand-orb small">✦</div><span>PHOENIX <b>AI EVO</b></span><button id="close-sidebar" class="icon-btn mobile-only" aria-label="Close menu">×</button></div>
-      <button id="new-chat" class="new-chat-btn"><span>＋</span> New conversation</button>
-      <div class="side-label">WORKSPACE</div>
-      <button class="side-link active"><span>◉</span> Assistant</button>
-      <button class="side-link" id="devices-link"><span>⌘</span> Connected devices <small>soon</small></button>
-      <div class="side-label recent-label">RECENT CHATS</div>
-      <div id="conversation-list" class="conversation-list"><div class="conversation-empty">Your conversations will appear here.</div></div>
-      <div class="sidebar-bottom">
-        <div class="provider-card"><span class="provider-indicator"></span><div><b>Cloud brain</b><small id="provider-status">Connecting…</small></div><span class="provider-tag">AI</span></div>
-      </div>
-    </aside>
+  <div class="ambient-grid"></div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark"><span>✦</span><i></i></div>
+      <div class="brand-copy"><div><strong>ULTRON</strong><small>PHOENIX AI EVO</small></div><span class="version">MULTIMODAL SYSTEM</span></div>
+      <div class="room-meta"><span id="conn-dot" class="conn-dot"></span><span id="room-status-text">CLOUD SESSION</span><span class="latency" id="latency-readout">OPENROUTER</span></div>
+    </div>
+    <div class="capability-strip">
+      <span>◉ VOICE</span><span>◎ VISION</span><span>⌕ WEB</span><span>⌘ TOOLS</span>
+    </div>
+    <div class="top-actions">
+      <label class="voice-choice"><span>VOICE</span><select id="voice-persona-select" aria-label="Voice profile"><option value="ultron">ULTRON · DEEP SYNTH</option></select></label>
+      <button id="btn-tts" class="audio-toggle active" type="button" aria-pressed="true"><span id="tts-icon">◖</span><span id="tts-text">AUDIO ON</span></button>
+      <button id="open-sidebar" class="icon-btn" type="button" aria-label="Conversation history">☰</button>
+      <button id="settings-button" class="icon-btn" type="button" aria-label="Settings">⚙</button>
+    </div>
+  </header>
 
-    <section class="main-panel">
-      <header class="topbar">
-        <button id="open-sidebar" class="icon-btn mobile-only" aria-label="Open menu">☰</button>
-        <div class="breadcrumb"><span>Workspace</span><i>/</i><b>Assistant</b></div>
-        <div class="topbar-right"><span class="status-pill"><span class="pulse-dot"></span> <span id="connection-label">Connecting</span></span><button class="icon-btn" id="settings-button" title="Settings">⚙</button></div>
-      </header>
-      <section class="chat-area" id="chat-area">
-        <div class="welcome" id="welcome">
-          <div class="welcome-symbol"><div class="core-ring ring-a"></div><div class="core-ring ring-b"></div><div class="core-star">✦</div></div>
-          <div class="eyebrow centered"><span class="pulse-dot"></span> PHOENIX IS READY</div>
-          <h2>What are we <span>building</span><br>today?</h2>
-          <p>Your personal AI workspace is connected to the cloud.<br>Ask a question, explore an idea, or get something done.</p>
-          <div class="suggestions">
-            <button class="suggestion" data-prompt="Help me plan and prioritize my tasks for today."><span>✧</span><b>Plan my day</b><small>Turn a busy day into a clear plan</small></button>
-            <button class="suggestion" data-prompt="Explain a complex technical concept in simple terms."><span>⌘</span><b>Learn something</b><small>Break down a difficult concept</small></button>
-            <button class="suggestion" data-prompt="Help me design and build a software project."><span>⌁</span><b>Build a project</b><small>Go from idea to implementation</small></button>
-          </div>
+  <aside id="sidebar" class="history-drawer">
+    <div class="drawer-head"><div><small>PHOENIX MEMORY</small><h2>Conversations</h2></div><button id="close-sidebar" class="icon-btn" type="button">×</button></div>
+    <button id="new-chat" class="new-chat-btn" type="button">＋ New conversation</button>
+    <div id="conversation-list" class="conversation-list"><div class="conversation-empty">Your conversations will appear here.</div></div>
+    <div class="drawer-foot"><span class="provider-indicator"></span><div><b>Cloud brain</b><small id="provider-status">Connecting…</small></div></div>
+    <button id="devices-link" class="device-link" type="button">Connected devices · soon</button>
+  </aside>
+
+  <main class="workspace">
+    <section id="panel-tools" class="panel tools-panel">
+      <article class="glass vision-card">
+        <div class="section-heading"><div><span class="live-dot" id="cam-indicator"></span><h2>VISION / SCREEN</h2></div><span id="vision-mode-badge" class="state-tag">STANDBY</span></div>
+        <div class="video-stage">
+          <video id="user-video" autoplay playsinline muted></video>
+          <canvas id="vision-capture-canvas" hidden></canvas>
+          <div id="video-placeholder" class="video-placeholder"><div class="video-icon">⌁</div><b>Optical sensors offline</b><small>Enable a camera or share a screen to give ULTRON visual context.</small><div class="video-actions"><button id="enable-camera" class="small-action primary" type="button">◉ Enable camera</button><button id="enable-screen" class="small-action" type="button">▣ Share screen</button></div></div>
+          <div id="vision-hud-overlay" class="vision-hud hidden"><span>PHOENIX OPTICAL FEED</span><button id="analyze-frame" type="button">✧ ANALYZE FRAME</button></div>
         </div>
-        <div id="messages" class="messages" aria-live="polite"></div>
-      </section>
-      <footer class="composer-wrap">
-        <form id="chat-form" class="composer">
-          <textarea id="prompt" rows="1" placeholder="Message Phoenix…" aria-label="Message Phoenix"></textarea>
-          <div class="composer-tools"><span class="composer-hint">Enter to send · Shift + Enter for a new line</span><div class="composer-actions"><button type="button" class="tool-btn" id="clear-chat" title="Clear conversation">↺</button><button type="submit" id="send-button" class="send-btn" aria-label="Send message">↑</button></div></div>
-        </form>
-        <div class="disclaimer">Phoenix can make mistakes. Verify important information.</div>
-      </footer>
+        <div class="vision-foot"><span id="vision-footnote">Camera and screen access are user-controlled.</span><button id="stop-vision" type="button">STOP FEED</button></div>
+      </article>
+      <article class="glass tool-card">
+        <div class="section-heading"><div><span class="tool-symbol">⌘</span><h2>AGENT TOOLSPACE</h2></div><span class="state-tag ready" id="active-tool-badge">AI ROUTING</span></div>
+        <div class="tool-grid">
+          <button class="tool-tile" data-prompt="Check the current weather for Ede, Osun, Nigeria and summarize it." type="button"><span>☼</span><b>Weather</b><small>Live conditions</small></button>
+          <button class="tool-tile" data-prompt="Search the web for the latest developments in AI and robotics. Summarize reliable sources." type="button"><span>⌕</span><b>Web search</b><small>Research request</small></button>
+          <button class="tool-tile" data-prompt="Help me plan a browser automation task. Explain what permissions and steps are required before taking action." type="button"><span>◎</span><b>Browser agent</b><small>Automation planning</small></button>
+          <button class="tool-tile" data-prompt="Help me draft an email. Ask me for the recipient and details before sending anything." type="button"><span>✉</span><b>Email assistant</b><small>Draft before send</small></button>
+        </div>
+        <div class="tool-output" id="tool-output-panel"><div class="monitor-head"><span>// SYSTEM MONITOR</span><span>IDLE</span></div><p>Tool requests are sent to the Phoenix AI brain. External actions are not reported as completed unless a connected integration actually confirms them.</p></div>
+      </article>
     </section>
-  </div>
 
-  <div id="settings-modal" class="modal-backdrop hidden">
-    <section class="settings-modal">
-      <div class="modal-head"><div><div class="eyebrow">PREFERENCES</div><h3>Workspace settings</h3></div><button id="close-settings" class="icon-btn" aria-label="Close settings">×</button></div>
-      <div class="settings-row"><div><b>AI provider</b><small>Requests are securely routed through your cloud API.</small></div><span class="settings-value">OpenRouter</span></div>
-      <div class="settings-row"><div><b>Model</b><small>Selected on the cloud server.</small></div><span class="settings-value">Auto</span></div>
-      <p class="settings-note">Your provider key stays on the server. Never paste API secrets into this browser.</p>
+    <section id="panel-agent" class="panel agent-panel">
+      <article class="glass agent-stage">
+        <div class="agent-topline"><span class="agent-state"><i id="agent-pulse-dot"></i><b id="agent-state-badge">SYSTEM READY // AWAITING INPUT</b></span><span class="wake-word">PHOENIX CORE <b>ONLINE</b></span></div>
+        <div class="orb-zone">
+          <button id="orb-trigger" class="orb-button" type="button" aria-label="Start voice recording">
+            <span class="orb-aura"></span><canvas id="orb-canvas"></canvas>
+            <svg viewBox="0 0 260 260" aria-hidden="true">
+              <defs><radialGradient id="coreGrad"><stop offset="0" stop-color="#fff"/><stop offset=".36" stop-color="#00e5ff" stop-opacity=".9"/><stop offset=".78" stop-color="#0077ff" stop-opacity=".24"/><stop offset="1" stop-color="#0077ff" stop-opacity="0"/></radialGradient></defs>
+              <g class="ring ring-one"><circle cx="130" cy="130" r="116" fill="none" stroke="#00e5ff" stroke-opacity=".35" stroke-dasharray="6 10"/><circle cx="130" cy="130" r="108" fill="none" stroke="#00e5ff" stroke-width="2" stroke-opacity=".6" stroke-dasharray="50 25 12 25"/></g>
+              <g class="ring ring-two"><circle cx="130" cy="130" r="92" fill="none" stroke="#38bdf8" stroke-width="3" stroke-opacity=".55" stroke-dasharray="18 14"/><circle cx="130" cy="130" r="82" fill="none" stroke="#00e5ff" stroke-opacity=".7" stroke-dasharray="70 35"/></g>
+              <g class="ring ring-three"><circle cx="130" cy="130" r="66" fill="none" stroke="#00e5ff" stroke-width="4" stroke-opacity=".8" stroke-dasharray="10 8"/></g>
+              <g class="core-glow"><circle cx="130" cy="130" r="47" fill="url(#coreGrad)"/><circle cx="130" cy="130" r="28" fill="none" stroke="#fff" stroke-opacity=".8" stroke-dasharray="8 5"/></g>
+            </svg>
+            <span id="orb-center-icon" class="orb-center-icon">◉</span>
+          </button>
+          <div id="lk-bar-visualizer" class="equalizer" aria-hidden="true"></div>
+          <div class="orb-caption"><span class="eyebrow">ULTRON / LIVE INTERFACE</span><p id="live-caption">Systems standing by. Press the core or Talk to ULTRON to speak.</p></div>
+        </div>
+        <div class="agent-quick-actions"><button data-prompt="Give me a concise system and project briefing." type="button">⌁ SYSTEM BRIEF</button><button data-prompt="Search the web for the latest AI and robotics breakthroughs." type="button">⌕ RESEARCH</button><button id="quick-vision" type="button">◎ VISION CHECK</button></div>
+        <div class="agent-footer"><span><i></i> SECURE SERVER-SIDE API KEY</span><span>STT: OPENROUTER · TTS: GROK VOICE</span></div>
+      </article>
     </section>
-  </div>
+
+    <section id="panel-chat" class="panel chat-panel">
+      <article class="glass transcript-card">
+        <div class="section-heading transcript-heading"><div><span class="chat-symbol">▤</span><h2>LIVE TRANSCRIPT</h2></div><button id="clear-chat" type="button" class="clear-btn">CLEAR</button></div>
+        <div id="chat-area" class="chat-area">
+          <div id="welcome" class="welcome-note"><b>ULTRON IS READY</b><p>Initiate a conversation. Your messages and responses will appear here.</p></div>
+          <div id="messages" class="messages" aria-live="polite"></div>
+        </div>
+        <form id="chat-form" class="composer">
+          <textarea id="prompt" rows="1" placeholder="Transmit a command to ULTRON…" aria-label="Message ULTRON"></textarea>
+          <div class="composer-bottom"><span>ENTER TO SEND · SHIFT + ENTER FOR NEW LINE</span><button id="send-button" type="submit" aria-label="Send message">➤</button></div>
+        </form>
+      </article>
+    </section>
+  </main>
+
+  <footer class="control-dock">
+    <button id="dock-mic-btn" class="dock-button primary" type="button"><span id="dock-mic-icon">◉</span><b id="dock-mic-label">TALK</b></button>
+    <button id="dock-cam-btn" class="dock-button" type="button">◎ <b>CAMERA</b></button>
+    <button id="dock-screen-btn" class="dock-button" type="button">▣ <b>SCREEN</b></button>
+    <span class="dock-divider"></span>
+    <div class="mobile-switchers"><button id="mob-btn-agent" class="switcher active" data-view="agent" type="button">◉</button><button id="mob-btn-tools" class="switcher" data-view="tools" type="button">⌘</button><button id="mob-btn-chat" class="switcher" data-view="chat" type="button">▤</button></div>
+    <button id="dock-connect-btn" class="dock-button disconnect" type="button"><span id="dock-conn-icon">●</span><b id="dock-conn-label">SESSION ON</b></button>
+  </footer>
+
+  <div id="settings-modal" class="modal-backdrop hidden"><section class="settings-modal"><div class="modal-head"><div><small>CONFIGURATION</small><h3>ULTRON settings</h3></div><button id="close-settings" class="icon-btn" type="button">×</button></div><div class="settings-row"><div><b>AI brain</b><small>Text generation and reasoning</small></div><span>OpenRouter</span></div><div class="settings-row"><div><b>Speech recognition</b><small>Speech-to-text</small></div><span>OpenRouter Whisper</span></div><div class="settings-row"><div><b>Voice synthesis</b><small>Non-Gemini text-to-speech</small></div><span>Grok Voice</span></div><p class="settings-note">API credentials remain on the Phoenix server. This browser never receives your OpenRouter key.</p></section></div>
+
   <script src="/web-assets/app.js" defer></script>
-  <script src="/web-assets/phoenix-enhancements.js" defer></script>
+  <script src="/web-assets/ultron-ui.js" defer></script>
 </body>
 </html>
