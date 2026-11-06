@@ -16,7 +16,8 @@ from pydantic import BaseModel, Field
 
 SERVICE_NAME = "phoenix-cloud-api"
 API_VERSION = "1.0.0"
-DEVICE_SELECT = "id,user_id,name,platform,created_at,last_seen_at,revoked_at,credential_hash"\nOPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+DEVICE_SELECT = "id,user_id,name,platform,created_at,last_seen_at,revoked_at,credential_hash"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
 def _env(name: str, default: str = "") -> str:

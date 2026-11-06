@@ -25,7 +25,7 @@ def test_readiness_reports_missing_configuration(monkeypatch):
         response = client.get("/readyz")
     assert response.status_code == 503
     assert set(response.json()["detail"]["missing_configuration"]) == {
-        "SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY"
+        "SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY", "OPENROUTER_API_KEY"
     }
 
 
