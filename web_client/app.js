@@ -64,13 +64,20 @@
     }catch(error){setMessage($("auth-message"),error.message,true);}
     finally{button.disabled=false;}
   }
+  async function checkBackend(){
+    try{
+      const response=await fetch("/readyz");
+      if(response.ok){$("provider-status").textContent="OpenRouter ready";$("connection-label").textContent="Cloud ready";}
+      else{$("provider-status").textContent="Server setup needed";$("connection-label").textContent="Setup required";}
+    }catch(_){$("provider-status").textContent="Cloud unavailable";$("connection-label").textContent="Offline";}
+  }
   function showApp(){
     authScreen.classList.add("hidden");appScreen.classList.remove("hidden");
     const email=state.session.user&&state.session.user.email?state.session.user.email:"Phoenix user";
     $("profile-email").textContent=email;$("settings-identity").textContent=email;
     $("avatar").textContent=email.charAt(0).toUpperCase();
-    $("provider-status").textContent="OpenRouter cloud";$("connection-label").textContent="Cloud connected";
-    $("prompt").focus();
+    $("provider-status").textContent="Checking cloud…";$("connection-label").textContent="Checking";
+    checkBackend();$("prompt").focus();
   }
   async function signOut(){
     try{if(state.session&&state.session.access_token)await fetch(state.config.supabase_url+"/auth/v1/logout",{method:"POST",headers:{"apikey":state.config.supabase_publishable_key,"Authorization":"Bearer "+state.session.access_token}});}catch(_){}
