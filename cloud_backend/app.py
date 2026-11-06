@@ -88,7 +88,7 @@ class AuthenticatedUser(BaseModel):
 
 class ChatMessage(BaseModel):
     role: Literal["system", "user", "assistant"]
-    content: str = Field(min_length=1, max_length=24000)
+    content: str | list[dict] = Field(min_length=1)
 
 
 class ChatCompletionRequest(BaseModel):
