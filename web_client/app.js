@@ -1,6 +1,6 @@
 (function(){
 "use strict";
-const $=id=>document.getElementById(id), KEY="phoenix.web.conversations.v1";
+const $=id=>document.getElementById(id), KEY="phoenix.web.conversations.v1";\nconst ULTRON_SYSTEM_PROMPT="You are ULTRON, the operator’s personal AI assistant. Your identity, name, and conversational persona are ULTRON. Never introduce yourself as OpenAI, ChatGPT, Phoenix, or another assistant brand. If asked who you are, answer: I am ULTRON. Be direct, practical, calm, capable, and honest. Do not claim a tool, camera, screen, file, or external action succeeded unless it actually did. You can interpret images attached to the current message only when the configured AI model supports vision. If asked about your underlying model or provider, be truthful: you are ULTRON, running on the model configured by the operator.";
 const state={messages:[],conversations:[],conversationId:null,busy:false};
 function load(){try{const v=JSON.parse(localStorage.getItem(KEY)||"[]");return Array.isArray(v)?v:[]}catch(_){return[]}}
 function persist(){localStorage.setItem(KEY,JSON.stringify(state.conversations.slice(0,50)))}
@@ -8,7 +8,7 @@ function addMessage(role,content){
  const item=document.createElement("article");item.className="message "+role;
  const avatar=document.createElement("div");avatar.className="message-avatar";avatar.textContent=role==="user"?"V":"✦";
  const body=document.createElement("div");body.className="message-body";
- const label=document.createElement("div");label.className="message-label";label.textContent=role==="user"?"You":"Phoenix";
+ const label=document.createElement("div");label.className="message-label";label.textContent=role==="user"?"You":"ULTRON";
  const text=document.createElement("div");text.className="message-content";text.textContent=content;
  body.append(label,text);item.append(avatar,body);$("messages").append(item);$("chat-area").scrollTop=$("chat-area").scrollHeight;
 }
@@ -27,12 +27,12 @@ function renderList(){
 function openChat(id){const c=state.conversations.find(x=>x.id===id);if(!c)return;state.conversationId=id;state.messages=c.messages||[];$("messages").replaceChildren();state.messages.forEach(m=>addMessage(m.role,m.content));$("welcome").classList.toggle("hidden",!!state.messages.length);renderList();$("sidebar").classList.remove("open")}
 function ensureChat(first){if(state.conversationId)return;state.conversationId=crypto.randomUUID?crypto.randomUUID():String(Date.now());state.conversations.unshift({id:state.conversationId,title:first.replace(/\s+/g," ").slice(0,72)||"New conversation",messages:[],updatedAt:Date.now()})}
 function save(role,content){const c=state.conversations.find(x=>x.id===state.conversationId);if(!c)return;c.messages.push({role,content});c.updatedAt=Date.now();state.conversations.sort((x,y)=>y.updatedAt-x.updatedAt);persist();renderList()}
-function typing(){const item=document.createElement("article");item.className="message assistant";item.id="typing-indicator";const av=document.createElement("div");av.className="message-avatar";av.textContent="✦";const body=document.createElement("div");body.className="message-body";const label=document.createElement("div");label.className="message-label";label.textContent="Phoenix is thinking";const dots=document.createElement("div");dots.className="typing";dots.innerHTML="<span></span><span></span><span></span>";body.append(label,dots);item.append(av,body);$("messages").append(item)}
+function typing(){const item=document.createElement("article");item.className="message assistant";item.id="typing-indicator";const av=document.createElement("div");av.className="message-avatar";av.textContent="✦";const body=document.createElement("div");body.className="message-body";const label=document.createElement("div");label.className="message-label";label.textContent="ULTRON is thinking";const dots=document.createElement("div");dots.className="typing";dots.innerHTML="<span></span><span></span><span></span>";body.append(label,dots);item.append(av,body);$("messages").append(item)}
 async function check(){try{const r=await fetch("/readyz");if(!r.ok)throw 0;$("provider-status").textContent="OpenRouter ready";$("connection-label").textContent="Cloud ready"}catch(_){$("provider-status").textContent="Cloud unavailable";$("connection-label").textContent="Offline"}}
 async function send(value){
  const content=(value||"").trim();if(!content||state.busy)return;state.busy=true;$("send-button").disabled=true;$("welcome").classList.add("hidden");ensureChat(content);state.messages.push({role:"user",content});save("user",content);addMessage("user",content);$("prompt").value="";resize();typing();
  try{
-  const r=await fetch("/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:state.messages.slice(-40),temperature:.7,max_tokens:1200})});
+  const r=await fetch("/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:[{role:"system",content:ULTRON_SYSTEM_PROMPT},...state.messages.slice(-40)],temperature:.7,max_tokens:1200})});
   const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.detail||d.error?.message||"Phoenix could not complete the request.");
   const answer=d.choices?.[0]?.message?.content;if(typeof answer!=="string"||!answer.trim())throw Error("The AI provider returned an empty response.");
   state.messages.push({role:"assistant",content:answer});save("assistant",answer);$("typing-indicator")?.remove();addMessage("assistant",answer);
