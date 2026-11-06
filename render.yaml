@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: phoenix-cloud-api
+    runtime: python
+    plan: free
+    region: frankfurt
+    branch: web
+    buildCommand: pip install -r requirements-cloud.txt
+    startCommand: uvicorn cloud_backend.app:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_SECRET_KEY
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
