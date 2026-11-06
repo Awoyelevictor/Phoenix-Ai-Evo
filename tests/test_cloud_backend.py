@@ -4,7 +4,7 @@ from cloud_backend.app import app
 
 
 def clear_supabase_env(monkeypatch):
-    for key in ("SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"):
+    for key in ("SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "OPENROUTER_API_KEY"):
         monkeypatch.delenv(key, raising=False)
 
 
