@@ -429,7 +429,7 @@ async def append_conversation_message(
         raise HTTPException(status_code=502, detail="Message save did not return a record.")
     update = {"updated_at": _now()}
     if body.role == "user" and conversation.get("title") == "New conversation":
-        update["title"] = body.content.strip().replace("\\n", " ")[:72] or "New conversation"
+        update["title"] = " ".join(body.content.split())[:72] or "New conversation"
     await _admin_request(
         request, "PATCH", "phoenix_conversations",
         params={"id": f"eq.{conversation_id}", "user_id": f"eq.{user.id}"},
