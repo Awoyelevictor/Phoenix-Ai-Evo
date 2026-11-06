@@ -95,3 +95,21 @@ def test_root_head_health_probe():
     with TestClient(app) as client:
         response = client.head("/")
     assert response.status_code == 200
+
+
+
+def test_conversation_routes_require_authentication():
+    with TestClient(app) as client:
+        listing = client.get("/v1/conversations")
+        create = client.post("/v1/conversations", json={"title": "Private"})
+    assert listing.status_code == 401
+    assert create.status_code == 401
+
+
+def test_conversation_message_payload_validation():
+    from cloud_backend.app import ConversationMessageCreate
+    import pytest
+    with pytest.raises(Exception):
+        ConversationMessageCreate(role="system", content="Injected system prompt")
+    with pytest.raises(Exception):
+        ConversationMessageCreate(role="user", content="")

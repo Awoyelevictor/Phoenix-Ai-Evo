@@ -98,6 +98,15 @@ class ChatCompletionRequest(BaseModel):
     max_tokens: int = Field(default=1200, ge=1, le=4096)
 
 
+class ConversationCreate(BaseModel):
+    title: str = Field(default="New conversation", min_length=1, max_length=160)
+
+
+class ConversationMessageCreate(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=24000)
+
+
 async def _supabase_auth_user(request: Request, token: str) -> AuthenticatedUser:
     base_url, publishable_key, _ = _supabase_config()
     if not base_url or not publishable_key:
@@ -318,6 +327,130 @@ async def device_ping(device: Annotated[dict, Depends(current_device)]):
         "server_time": _now(),
     }
 
+
+
+
+
+async def _owned_conversation(request: Request, conversation_id: UUID, user_id: UUID) -> dict:
+    rows = await _admin_request(
+        request, "GET", "phoenix_conversations",
+        params={
+            "id": f"eq.{conversation_id}",
+            "user_id": f"eq.{user_id}",
+            "archived_at": "is.null",
+            "select": "id,user_id,title,created_at,updated_at,archived_at",
+            "limit": "1",
+        },
+    )
+    if not isinstance(rows, list) or not rows:
+        raise HTTPException(status_code=404, detail="Conversation not found.")
+    return rows[0]
+
+
+@app.get("/v1/conversations")
+async def list_conversations(
+    request: Request,
+    user: Annotated[AuthenticatedUser, Depends(current_user)],
+    limit: int = 50,
+):
+    if limit < 1 or limit > 100:
+        raise HTTPException(status_code=422, detail="Limit must be between 1 and 100.")
+    rows = await _admin_request(
+        request, "GET", "phoenix_conversations",
+        params={
+            "user_id": f"eq.{user.id}",
+            "archived_at": "is.null",
+            "select": "id,title,created_at,updated_at",
+            "order": "updated_at.desc",
+            "limit": str(limit),
+        },
+    )
+    return {"conversations": rows if isinstance(rows, list) else []}
+
+
+@app.post("/v1/conversations", status_code=status.HTTP_201_CREATED)
+async def create_conversation(
+    body: ConversationCreate,
+    request: Request,
+    user: Annotated[AuthenticatedUser, Depends(current_user)],
+):
+    rows = await _admin_request(
+        request, "POST", "phoenix_conversations",
+        json={"user_id": str(user.id), "title": body.title.strip()},
+        prefer="return=representation",
+    )
+    if not isinstance(rows, list) or not rows:
+        raise HTTPException(status_code=502, detail="Conversation creation did not return a record.")
+    return {"conversation": rows[0]}
+
+
+@app.get("/v1/conversations/{conversation_id}/messages")
+async def list_conversation_messages(
+    conversation_id: UUID,
+    request: Request,
+    user: Annotated[AuthenticatedUser, Depends(current_user)],
+    limit: int = 200,
+):
+    if limit < 1 or limit > 500:
+        raise HTTPException(status_code=422, detail="Limit must be between 1 and 500.")
+    await _owned_conversation(request, conversation_id, user.id)
+    rows = await _admin_request(
+        request, "GET", "phoenix_messages",
+        params={
+            "conversation_id": f"eq.{conversation_id}",
+            "user_id": f"eq.{user.id}",
+            "select": "id,role,content,created_at",
+            "order": "created_at.asc",
+            "limit": str(limit),
+        },
+    )
+    return {"messages": rows if isinstance(rows, list) else []}
+
+
+@app.post("/v1/conversations/{conversation_id}/messages", status_code=status.HTTP_201_CREATED)
+async def append_conversation_message(
+    conversation_id: UUID,
+    body: ConversationMessageCreate,
+    request: Request,
+    user: Annotated[AuthenticatedUser, Depends(current_user)],
+):
+    conversation = await _owned_conversation(request, conversation_id, user.id)
+    rows = await _admin_request(
+        request, "POST", "phoenix_messages",
+        json={
+            "conversation_id": str(conversation_id),
+            "user_id": str(user.id),
+            "role": body.role,
+            "content": body.content,
+        },
+        prefer="return=representation",
+    )
+    if not isinstance(rows, list) or not rows:
+        raise HTTPException(status_code=502, detail="Message save did not return a record.")
+    update = {"updated_at": _now()}
+    if body.role == "user" and conversation.get("title") == "New conversation":
+        update["title"] = body.content.strip().replace("\\n", " ")[:72] or "New conversation"
+    await _admin_request(
+        request, "PATCH", "phoenix_conversations",
+        params={"id": f"eq.{conversation_id}", "user_id": f"eq.{user.id}"},
+        json=update,
+    )
+    return {"message": rows[0]}
+
+
+@app.delete("/v1/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def archive_conversation(
+    conversation_id: UUID,
+    request: Request,
+    user: Annotated[AuthenticatedUser, Depends(current_user)],
+):
+    await _owned_conversation(request, conversation_id, user.id)
+    await _admin_request(
+        request, "PATCH", "phoenix_conversations",
+        params={"id": f"eq.{conversation_id}", "user_id": f"eq.{user.id}", "archived_at": "is.null"},
+        json={"archived_at": _now(), "updated_at": _now()},
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @app.get("/v1/config")

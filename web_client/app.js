@@ -1,7 +1,7 @@
 (function(){
   "use strict";
   const $ = (id) => document.getElementById(id);
-  const state = {config:null, mode:"login", session:null, messages:[], busy:false};
+  const state = {config:null, mode:"login", session:null, messages:[], conversations:[], conversationId:null, busy:false};
   const AUTH_KEY = "phoenix.web.session.v1";
   const authScreen=$("auth-screen"), appScreen=$("app-screen"), authForm=$("auth-form");
   function setMessage(node,text,error){node.textContent=text||"";node.style.color=error?"#ff9d9d":"#8edfc9";}
@@ -77,13 +77,13 @@
     $("profile-email").textContent=email;$("settings-identity").textContent=email;
     $("avatar").textContent=email.charAt(0).toUpperCase();
     $("provider-status").textContent="Checking cloud…";$("connection-label").textContent="Checking";
-    checkBackend();$("prompt").focus();
+    checkBackend();loadConversations();$("prompt").focus();
   }
   async function signOut(){
     try{if(state.session&&state.session.access_token)await fetch(state.config.supabase_url+"/auth/v1/logout",{method:"POST",headers:{"apikey":state.config.supabase_publishable_key,"Authorization":"Bearer "+state.session.access_token}});}catch(_){}
-    saveSession(null);state.messages=[];state.busy=false;
+    saveSession(null);state.messages=[];state.conversations=[];state.conversationId=null;state.busy=false;
     appScreen.classList.add("hidden");authScreen.classList.remove("hidden");$("profile-menu").classList.add("hidden");
-    $("messages").replaceChildren();$("welcome").classList.remove("hidden");$("prompt").value="";
+    $("messages").replaceChildren();$("conversation-list").replaceChildren();$("welcome").classList.remove("hidden");$("prompt").value="";
   }
   function addMessage(role,content){
     const item=document.createElement("article");item.className="message "+role;
@@ -102,23 +102,80 @@
     const dots=document.createElement("div");dots.className="typing";dots.innerHTML="<span></span><span></span><span></span>";
     body.append(label,dots);item.append(avatar,body);$("messages").append(item);$("chat-area").scrollTop=$("chat-area").scrollHeight;
   }
+  async function ensureConversation(firstMessage){
+    if(state.conversationId)return state.conversationId;
+    const title=firstMessage.replace(/\\s+/g," ").slice(0,72)||"New conversation";
+    const response=await apiFetch("/v1/conversations",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title:title})});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||!data.conversation)throw new Error(data.detail||"Could not create a saved conversation.");
+    state.conversationId=data.conversation.id;await loadConversations(false);return state.conversationId;
+  }
+  async function saveConversationMessage(role,content){
+    if(!state.conversationId)return;
+    const response=await apiFetch("/v1/conversations/"+encodeURIComponent(state.conversationId)+"/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({role:role,content:content})});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw new Error(data.detail||"Conversation could not be saved.");
+    return data.message;
+  }
+  async function loadConversations(selectLatest){
+    try{
+      const response=await apiFetch("/v1/conversations?limit=50");
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok)throw new Error(data.detail||"Unable to load conversations.");
+      state.conversations=data.conversations||[];renderConversationList();
+      if(selectLatest!==false&&state.conversations.length&&!state.conversationId)await openConversation(state.conversations[0].id);
+    }catch(error){$("conversation-list").innerHTML='<div class="conversation-empty">Saved chats unavailable right now.</div>';}
+  }
+  function renderConversationList(){
+    const list=$("conversation-list");list.replaceChildren();
+    if(!state.conversations.length){const empty=document.createElement("div");empty.className="conversation-empty";empty.textContent="Your conversations will appear here.";list.append(empty);return;}
+    state.conversations.forEach(conversation=>{
+      const row=document.createElement("div");row.className="conversation-item"+(conversation.id===state.conversationId?" active":"");
+      const open=document.createElement("button");open.type="button";open.className="conversation-item";open.style.flex="1";open.style.padding="0";open.textContent="";
+      const title=document.createElement("span");title.textContent=conversation.title||"Untitled conversation";open.append(title);
+      open.addEventListener("click",()=>openConversation(conversation.id));
+      const remove=document.createElement("button");remove.type="button";remove.className="conversation-delete";remove.title="Archive conversation";remove.textContent="×";
+      remove.addEventListener("click",async e=>{e.stopPropagation();await archiveConversation(conversation.id);});
+      row.append(open,remove);list.append(row);
+    });
+  }
+  async function openConversation(id){
+    if(state.busy)return;
+    const response=await apiFetch("/v1/conversations/"+encodeURIComponent(id)+"/messages?limit=200");
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok){addMessage("assistant","I couldn't open that conversation: "+(data.detail||"Unknown error"));return;}
+    state.conversationId=id;state.messages=(data.messages||[]).map(item=>({role:item.role,content:item.content}));
+    $("messages").replaceChildren();state.messages.forEach(item=>addMessage(item.role,item.content));
+    $("welcome").classList.toggle("hidden",state.messages.length>0);renderConversationList();
+    $("sidebar").classList.remove("open");
+  }
+  async function archiveConversation(id){
+    const response=await apiFetch("/v1/conversations/"+encodeURIComponent(id),{method:"DELETE"});
+    if(!response.ok){addMessage("assistant","I couldn't archive that conversation.");return;}
+    if(state.conversationId===id){state.conversationId=null;state.messages=[];$("messages").replaceChildren();$("welcome").classList.remove("hidden");}
+    await loadConversations(false);
+  }
   async function sendMessage(value){
     const content=(value||"").trim();if(!content||state.busy)return;
     state.busy=true;$("send-button").disabled=true;$("welcome").classList.add("hidden");
     state.messages.push({role:"user",content:content});addMessage("user",content);$("prompt").value="";resizePrompt();showTyping();
     try{
-      const response=await apiFetch("/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:state.messages,temperature:0.7,max_tokens:1200})});
+      await ensureConversation(content);
+      await saveConversationMessage("user",content);
+      const context=state.messages.slice(-40);
+      const response=await apiFetch("/v1/chat/completions",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:context,temperature:0.7,max_tokens:1200})});
       const data=await response.json().catch(()=>({}));
       if(!response.ok)throw new Error(data.detail||data.error?.message||"Phoenix could not complete the request.");
       const answer=data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content;
       if(typeof answer!=="string"||!answer.trim())throw new Error("The AI provider returned an empty response.");
-      state.messages.push({role:"assistant",content:answer});$("typing-indicator")?.remove();addMessage("assistant",answer);
+      state.messages.push({role:"assistant",content:answer});await saveConversationMessage("assistant",answer);
+      $("typing-indicator")?.remove();addMessage("assistant",answer);await loadConversations(false);
     }catch(error){
       $("typing-indicator")?.remove();addMessage("assistant","I couldn't complete that request: "+error.message);
     }finally{state.busy=false;$("send-button").disabled=false;$("prompt").focus();}
   }
   function resizePrompt(){const area=$("prompt");area.style.height="auto";area.style.height=Math.min(area.scrollHeight,160)+"px";}
-  function clearChat(){if(state.busy)return;state.messages=[];$("messages").replaceChildren();$("welcome").classList.remove("hidden");}
+  function clearChat(){if(state.busy)return;state.messages=[];state.conversationId=null;$("messages").replaceChildren();$("welcome").classList.remove("hidden");renderConversationList();$("prompt").focus();}
   $("login-tab").addEventListener("click",()=>setMode("login"));
   $("signup-tab").addEventListener("click",()=>setMode("signup"));
   authForm.addEventListener("submit",submitAuth);
