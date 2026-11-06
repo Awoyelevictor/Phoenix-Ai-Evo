@@ -231,14 +231,7 @@ async def healthz():
 
 @app.get("/readyz")
 async def readyz():
-    base_url, publishable_key, secret_key = _supabase_config()
-    missing = [
-        name for name, value in (
-            ("SUPABASE_URL", base_url),
-            ("SUPABASE_PUBLISHABLE_KEY", publishable_key),
-            ("SUPABASE_SECRET_KEY", secret_key),
-        ) if not value
-    ]
+    missing = []
     if not _env("OPENROUTER_API_KEY"):
         missing.append("OPENROUTER_API_KEY")
     if missing:
@@ -492,8 +485,6 @@ async def web_asset(asset_name: str):
 async def chat_completions(
     body: ChatCompletionRequest,
     request: Request,
-    user: Annotated[AuthenticatedUser, Depends(current_user)],
-):
     api_key = _env("OPENROUTER_API_KEY")
     if not api_key:
         raise HTTPException(status_code=503, detail="The Phoenix AI provider is not configured.")
