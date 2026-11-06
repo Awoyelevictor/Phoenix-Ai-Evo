@@ -5,6 +5,8 @@ on:
     branches: [web]
     paths:
       - "cloud_backend/**"
+      - "web_client/**"
+      - "render.yaml"
       - "tests/test_cloud_backend.py"
       - "requirements-cloud.txt"
       - ".github/workflows/cloud-backend-ci.yml"
