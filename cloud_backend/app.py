@@ -485,6 +485,7 @@ async def web_asset(asset_name: str):
 async def chat_completions(
     body: ChatCompletionRequest,
     request: Request,
+):
     api_key = _env("OPENROUTER_API_KEY")
     if not api_key:
         raise HTTPException(status_code=503, detail="The Phoenix AI provider is not configured.")
