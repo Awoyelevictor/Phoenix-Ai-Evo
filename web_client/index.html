@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090d18">
+  <meta name="description" content="Phoenix AI Evo — your personal AI workspace.">
+  <title>Phoenix AI Evo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/web-assets/styles.css">
+</head>
+<body>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <main id="auth-screen" class="auth-shell">
+    <section class="auth-card">
+      <div class="brand-mark"><span class="brand-orb">✦</span><span>PHOENIX <b>AI EVO</b></span></div>
+      <div class="auth-intro">
+        <div class="eyebrow"><span class="pulse-dot"></span> PERSONAL INTELLIGENCE, ONLINE</div>
+        <h1>Your world.<br><span>Your intelligence.</span></h1>
+        <p>Sign in to continue to your Phoenix workspace.</p>
+      </div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="login-tab" type="button">Sign in</button>
+        <button class="auth-tab" id="signup-tab" type="button">Create account</button>
+      </div>
+      <form id="auth-form" autocomplete="on">
+        <label for="email">Email address</label>
+        <input id="email" name="email" type="email" placeholder="you@example.com" autocomplete="email" required>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" placeholder="At least 8 characters" autocomplete="current-password" minlength="8" required>
+        <button class="primary-btn auth-submit" id="auth-submit" type="submit">Sign in <span>→</span></button>
+      </form>
+      <p class="form-note" id="auth-message" role="status"></p>
+      <div class="auth-foot"><span class="secure-icon">◈</span> Secured by your ULTRON Supabase identity</div>
+    </section>
+    <div class="auth-side-note">ONE ASSISTANT. <span>EVERY DEVICE.</span></div>
+  </main>
+
+  <div id="app-screen" class="app-shell hidden">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand"><div class="brand-orb small">✦</div><span>PHOENIX <b>AI EVO</b></span><button id="close-sidebar" class="icon-btn mobile-only" aria-label="Close menu">×</button></div>
+      <button id="new-chat" class="new-chat-btn"><span>＋</span> New conversation</button>
+      <div class="side-label">WORKSPACE</div>
+      <button class="side-link active"><span>◉</span> Assistant</button>
+      <button class="side-link" id="devices-link"><span>⌘</span> Connected devices <small>soon</small></button>
+      <div class="sidebar-bottom">
+        <div class="provider-card"><span class="provider-indicator"></span><div><b>Cloud brain</b><small id="provider-status">Connecting…</small></div><span class="provider-tag">AI</span></div>
+        <button class="profile-row" id="profile-button"><span class="avatar" id="avatar">V</span><span class="profile-meta"><b id="profile-email">Account</b><small>Personal workspace</small></span><span class="more">•••</span></button>
+        <div id="profile-menu" class="profile-menu hidden"><button id="signout-button">Sign out</button></div>
+      </div>
+    </aside>
+
+    <section class="main-panel">
+      <header class="topbar">
+        <button id="open-sidebar" class="icon-btn mobile-only" aria-label="Open menu">☰</button>
+        <div class="breadcrumb"><span>Workspace</span><i>/</i><b>Assistant</b></div>
+        <div class="topbar-right"><span class="status-pill"><span class="pulse-dot"></span> <span id="connection-label">Connecting</span></span><button class="icon-btn" id="settings-button" title="Settings">⚙</button></div>
+      </header>
+      <section class="chat-area" id="chat-area">
+        <div class="welcome" id="welcome">
+          <div class="welcome-symbol"><div class="core-ring ring-a"></div><div class="core-ring ring-b"></div><div class="core-star">✦</div></div>
+          <div class="eyebrow centered"><span class="pulse-dot"></span> PHOENIX IS READY</div>
+          <h2>What are we <span>building</span><br>today?</h2>
+          <p>Your personal AI workspace is connected to the cloud.<br>Ask a question, explore an idea, or get something done.</p>
+          <div class="suggestions">
+            <button class="suggestion" data-prompt="Help me plan and prioritize my tasks for today."><span>✧</span><b>Plan my day</b><small>Turn a busy day into a clear plan</small></button>
+            <button class="suggestion" data-prompt="Explain a complex technical concept in simple terms."><span>⌘</span><b>Learn something</b><small>Break down a difficult concept</small></button>
+            <button class="suggestion" data-prompt="Help me design and build a software project."><span>⌁</span><b>Build a project</b><small>Go from idea to implementation</small></button>
+          </div>
+        </div>
+        <div id="messages" class="messages" aria-live="polite"></div>
+      </section>
+      <footer class="composer-wrap">
+        <form id="chat-form" class="composer">
+          <textarea id="prompt" rows="1" placeholder="Message Phoenix…" aria-label="Message Phoenix"></textarea>
+          <div class="composer-tools"><span class="composer-hint">Enter to send · Shift + Enter for a new line</span><div class="composer-actions"><button type="button" class="tool-btn" id="clear-chat" title="Clear conversation">↺</button><button type="submit" id="send-button" class="send-btn" aria-label="Send message">↑</button></div></div>
+        </form>
+        <div class="disclaimer">Phoenix can make mistakes. Verify important information.</div>
+      </footer>
+    </section>
+  </div>
+
+  <div id="settings-modal" class="modal-backdrop hidden">
+    <section class="settings-modal">
+      <div class="modal-head"><div><div class="eyebrow">PREFERENCES</div><h3>Workspace settings</h3></div><button id="close-settings" class="icon-btn" aria-label="Close settings">×</button></div>
+      <div class="settings-row"><div><b>AI provider</b><small>Requests are securely routed through your cloud API.</small></div><span class="settings-value">OpenRouter</span></div>
+      <div class="settings-row"><div><b>Model</b><small>Selected on the cloud server.</small></div><span class="settings-value">Auto</span></div>
+      <div class="settings-row"><div><b>Identity</b><small id="settings-identity">Signed in</small></div><span class="settings-value">ULTRON</span></div>
+      <p class="settings-note">Your provider key stays on the server. Never paste API secrets into this browser.</p>
+    </section>
+  </div>
+  <script src="/web-assets/app.js" defer></script>
+</body>
+</html>

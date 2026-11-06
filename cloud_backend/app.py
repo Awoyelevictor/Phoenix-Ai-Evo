@@ -11,6 +11,7 @@ from uuid import UUID
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Request, Response, status
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -82,6 +83,18 @@ class DeviceCreate(BaseModel):
 class AuthenticatedUser(BaseModel):
     id: UUID
     email: str | None = None
+
+
+class ChatMessage(BaseModel):
+    role: Literal["system", "user", "assistant"]
+    content: str = Field(min_length=1, max_length=24000)
+
+
+class ChatCompletionRequest(BaseModel):
+    messages: list[ChatMessage] = Field(min_length=1, max_length=40)
+    model: str | None = Field(default=None, min_length=1, max_length=160)
+    temperature: float = Field(default=0.7, ge=0, le=2)
+    max_tokens: int = Field(default=1200, ge=1, le=4096)
 
 
 async def _supabase_auth_user(request: Request, token: str) -> AuthenticatedUser:
@@ -216,6 +229,8 @@ async def readyz():
             ("SUPABASE_SECRET_KEY", secret_key),
         ) if not value
     ]
+    if not _env("OPENROUTER_API_KEY"):
+        missing.append("OPENROUTER_API_KEY")
     if missing:
         raise HTTPException(status_code=503, detail={"ok": False, "missing_configuration": missing})
     return {"ok": True, "service": SERVICE_NAME}
@@ -301,3 +316,87 @@ async def device_ping(device: Annotated[dict, Depends(current_device)]):
         "platform": device["platform"],
         "server_time": _now(),
     }
+
+
+
+@app.get("/v1/config")
+async def public_client_config():
+    base_url, publishable_key, _ = _supabase_config()
+    if not base_url or not publishable_key:
+        raise HTTPException(status_code=503, detail="Phoenix web sign-in is not configured.")
+    return {
+        "supabase_url": base_url,
+        "supabase_publishable_key": publishable_key,
+        "api_base_url": "",
+    }
+
+
+@app.get("/", include_in_schema=False)
+async def web_app():
+    index_file = Path(__file__).resolve().parent.parent / "web_client" / "index.html"
+    if not index_file.is_file():
+        raise HTTPException(status_code=503, detail="Phoenix web client is not installed.")
+    return FileResponse(index_file)
+
+
+@app.get("/web-assets/{asset_name}", include_in_schema=False)
+async def web_asset(asset_name: str):
+    if asset_name not in {"styles.css", "app.js"}:
+        raise HTTPException(status_code=404, detail="Asset not found.")
+    asset_file = Path(__file__).resolve().parent.parent / "web_client" / asset_name
+    if not asset_file.is_file():
+        raise HTTPException(status_code=404, detail="Asset not found.")
+    return FileResponse(asset_file)
+
+
+@app.post("/v1/chat/completions")
+async def chat_completions(
+    body: ChatCompletionRequest,
+    request: Request,
+    user: Annotated[AuthenticatedUser, Depends(current_user)],
+):
+    api_key = _env("OPENROUTER_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=503, detail="The Phoenix AI provider is not configured.")
+    model = body.model or _env("OPENROUTER_MODEL", "openrouter/auto")
+    payload = {
+        "model": model,
+        "messages": [message.model_dump() for message in body.messages],
+        "temperature": body.temperature,
+        "max_tokens": body.max_tokens,
+    }
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": _env("OPENROUTER_SITE_URL", "https://phoenix-cloud-api.onrender.com"),
+        "X-Title": "Phoenix AI Evo",
+    }
+    try:
+        response = await request.app.state.http.post(
+            OPENROUTER_URL,
+            headers=headers,
+            json=payload,
+            timeout=httpx.Timeout(60.0, connect=10.0),
+        )
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="The AI provider took too long to respond.")
+    except httpx.HTTPError:
+        raise HTTPException(status_code=503, detail="The AI provider is temporarily unreachable.")
+
+    if response.status_code == 401:
+        raise HTTPException(status_code=502, detail="OpenRouter rejected the server API key.")
+    if response.status_code == 402:
+        raise HTTPException(status_code=402, detail="OpenRouter account has insufficient credits.")
+    if response.status_code == 429:
+        raise HTTPException(status_code=429, detail="OpenRouter rate limit reached. Try again shortly.")
+    if response.status_code >= 500:
+        raise HTTPException(status_code=503, detail="OpenRouter is temporarily unavailable.")
+    if response.status_code != 200:
+        raise HTTPException(status_code=502, detail="OpenRouter could not complete this request.")
+    try:
+        result = response.json()
+    except ValueError:
+        raise HTTPException(status_code=502, detail="OpenRouter returned an invalid response.")
+    if not isinstance(result, dict) or not isinstance(result.get("choices"), list):
+        raise HTTPException(status_code=502, detail="OpenRouter returned an unexpected response.")
+    return result

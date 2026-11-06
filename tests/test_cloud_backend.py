@@ -69,3 +69,22 @@ def test_chat_requires_openrouter_key(monkeypatch):
         assert response.status_code == 503
     finally:
         app.dependency_overrides.clear()
+
+
+def test_public_config_never_returns_server_secrets(monkeypatch):
+    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "sb_publishable_example")
+    monkeypatch.setenv("SUPABASE_SECRET_KEY", "sb_secret_do_not_return")
+    with TestClient(app) as client:
+        response = client.get("/v1/config")
+    assert response.status_code == 200
+    assert response.json()["supabase_url"] == "https://example.supabase.co"
+    assert response.json()["supabase_publishable_key"] == "sb_publishable_example"
+    assert "secret" not in str(response.json()).lower()
+
+
+def test_web_client_is_served():
+    with TestClient(app) as client:
+        response = client.get("/")
+    assert response.status_code == 200
+    assert "Phoenix AI Evo" in response.text

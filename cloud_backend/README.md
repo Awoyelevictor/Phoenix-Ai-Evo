@@ -45,7 +45,7 @@ Device credentials are stored as SHA-256 digests; raw credentials are only retur
 
 Apply supabase/migrations/20261106000100_phoenix_devices.sql to the existing ULTRON Supabase project selected for Phoenix AI Evo before configuring the API. The migration enables RLS and denies direct access to anon and authenticated; only the server-side service role can access the table. The API performs ownership checks after verifying each user with Supabase Auth. The existing ULTRON project name and project ID remain unchanged; Phoenix uses its existing Supabase URL and keys.
 
-## Deployment
+## Browser client\n\nThe cloud service serves the Phoenix browser workspace at `/`. The static client lives in `web_client/`, signs users in through Supabase Auth, and sends chat requests to the authenticated cloud API. The OpenRouter secret never reaches the browser. Chat history currently lives in the active browser session; cross-device conversation and long-term memory synchronization remain part of Phase 2.\n\n## Deployment
 
 Render should deploy this branch with:
 
