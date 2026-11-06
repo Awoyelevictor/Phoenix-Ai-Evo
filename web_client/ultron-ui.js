@@ -26,9 +26,9 @@ document.querySelectorAll("[data-view]").forEach(btn=>btn.addEventListener("clic
 if(matchMedia("(max-width:760px)").matches){$("panel-agent").parentElement.classList.add("mobile-agent")}
 $("dock-connect-btn").addEventListener("click",()=>{state.sessionOn=!state.sessionOn;$("dock-conn-label").textContent=state.sessionOn?"SESSION ON":"SESSION PAUSED";$("dock-conn-icon").textContent=state.sessionOn?"●":"Ⅱ";$("dock-connect-btn").classList.toggle("disconnect",state.sessionOn);if(!state.sessionOn){stopRecording();stopVision();if(state.activeAudio){state.activeAudio.pause();state.activeAudio=null}status("SESSION PAUSED");caption("Local interaction paused. Resume the session to continue.")}else{status("SYSTEM READY // AWAITING INPUT");caption("Session resumed. ULTRON is ready.")}});
 function animate(){state.phase+=.08;barNodes.forEach((bar,i)=>{const active=state.recording||state.activeAudio;const h=active?6+Math.abs(Math.sin(state.phase*1.8+i*.45))*27:5+Math.abs(Math.sin(state.phase+i*.42))*5;bar.style.height=h+"px";bar.style.background=state.recording?"#f6bb55":"#00e5ff88"});requestAnimationFrame(animate)}animate();
-$("provider-status").textContent="OpenRouter · speech enabled";
+$("provider-status").textContent="Browser speech recognition · OpenRouter TTS";
 $("room-status-text").textContent="PHOENIX CLOUD";
-$("latency-readout").textContent="STT / TTS ROUTED";
+$("latency-readout").textContent="BROWSER STT / CLOUD TTS";
 $("conn-dot").style.background="#38e6a4";
 window.addEventListener("beforeunload",()=>{stopVision();if(state.activeAudio)state.activeAudio.pause();if(state.recorder?.state==="recording")state.recorder.stop()});
 })();
